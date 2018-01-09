@@ -2,7 +2,7 @@
  *
  *  SWMgr.java -	
  *
- * $Id: SWMgr.java 2833 2013-06-29 06:40:28Z chrislit $
+ * $Id$
  *
  * Copyright 2009-2013 CrossWire Bible Society (http://www.crosswire.org)
  *	CrossWire Bible Society
