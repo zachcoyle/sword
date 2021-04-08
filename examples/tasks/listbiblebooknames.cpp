@@ -1,7 +1,7 @@
 /******************************************************************************
  *
- *  listExtantModuleBookNames.cpp -	This example demonstrates how to list
- *  		book names available within a module
+ *  verseranges.cpp -	This example demonstrates how to work with contiguous
+ *			verse ranges using VerseKey
  *
  * $Id$
  *

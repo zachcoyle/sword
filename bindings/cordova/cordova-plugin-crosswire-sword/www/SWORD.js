@@ -118,15 +118,6 @@ SWModule.prototype.setKeyText = function(keyText, callback) {
 	return retVal;
 }
 
-SWModule.prototype.terminateSearch = function(callback) {
-	var retVal = null;
-	exec(callback?callback:function(r) { retVal = r; },
-		function(err) { utils.alert('[ERROR] problem: ' + err); },
-		"SWORD", "SWModule_terminateSearch", [this.name]
-	);
-	return retVal;
-}
-
 SWModule.prototype.search = function(expression, searchType, flags, scope, callback) {
 	var retVal = null;
 	exec(callback?callback:function(r) { retVal = r; },

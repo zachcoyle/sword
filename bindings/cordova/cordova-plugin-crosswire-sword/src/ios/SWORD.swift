@@ -350,7 +350,7 @@ debugPrint("initMgr, mgr: " + String(describing: mgr))
                 "name": vkInfo[VERSEKEY_BOOKNAME],
                 "abbrev": vkInfo[VERSEKEY_BOOKABBREV],
                 "osisName": vkInfo[VERSEKEY_OSISBOOKNAME],
-                "chapterMax": Int(vkInfo[VERSEKEY_CHAPTERMAX])!,
+                "chapterMax": Int(vkInfo[VERSEKEY_CHAPTERMAX]),
             ] as [AnyHashable : Any]
             retVal.append(bookInfo)
 
@@ -671,7 +671,7 @@ debugPrint("initMgr, mgr: " + String(describing: mgr))
         let saveMasterKey = String(cString: org_crosswire_sword_SWModule_getKeyText(masterMod))
         let saveKey = String(cString: org_crosswire_sword_SWModule_getKeyText(mod))
         var r = [[String: Any]]()
-        let currentKey = getStringArray(buffer: org_crosswire_sword_SWModule_getKeyChildren(masterMod))
+        var currentKey = getStringArray(buffer: org_crosswire_sword_SWModule_getKeyChildren(masterMod))
         let book = currentKey[VERSEKEY_BOOKABBREV]
         let chapter = currentKey[VERSEKEY_CHAPTER]
         org_crosswire_sword_SWModule_setKeyText(masterMod, book + "." + chapter + ".1")
@@ -724,14 +724,6 @@ debugPrint("initMgr, mgr: " + String(describing: mgr))
         return retVal;
     }
 
-    @objc(SWModule_terminateSearch:)
-    func SWModule_terminateSearch(command: CDVInvokedUrlCommand) {
-        let module = getModule(command: command)
-        if (module != 0) {
-            org_crosswire_sword_SWModule_terminateSearch(module)
-            self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "SWModule_terminateSearch"), callbackId: command.callbackId)
-        }
-    }
     
     @objc(SWModule_search:)
     func SWModule_search(command: CDVInvokedUrlCommand) {

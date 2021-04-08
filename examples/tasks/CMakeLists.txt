@@ -5,11 +5,9 @@
 # 
 MESSAGE(STATUS "\n-- CONFIGURING LIBRARY EXAMPLES")
 SET(example_PROGRAMS
-	parallelBibles
-	simpleVerseLookup
-	simpleChapter
-	simpleRange
-	listExtantModuleBookNames
+	parallelbibles
+	simpleverselookup
+	listbiblebooknames
 )
 
 FOREACH(DEMO ${example_PROGRAMS})

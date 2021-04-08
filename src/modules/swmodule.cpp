@@ -79,15 +79,6 @@ SWORD_NAMESPACE_START
 
 SWModule::StdOutDisplay SWModule::rawdisp;
 
-const signed int SWModule::SEARCHFLAG_MATCHWHOLEENTRY  = 4096;
-const signed int SWModule::SEARCHFLAG_STRICTBOUNDARIES = 8192;
-
-const signed int SWModule::SEARCHTYPE_REGEX     =  0;
-const signed int SWModule::SEARCHTYPE_PHRASE    = -1;
-const signed int SWModule::SEARCHTYPE_MULTIWORD = -2;
-const signed int SWModule::SEARCHTYPE_ENTRYATTR = -3;
-const signed int SWModule::SEARCHTYPE_EXTERNAL  = -4;
-
 typedef std::list<SWBuf> StringList;
 
 /******************************************************************************
@@ -372,26 +363,22 @@ void SWModule::decrement(int steps) {
 }
 
 
-/** Searches a module
+/******************************************************************************
+ * SWModule::Search 	- Searches a module for a string
  *
- * @param istr string for which to search
- * @param searchType type of search to perform
- *			SEARCHTYPE_REGEX     - regex; (for backward compat, if > 0 then used as additional REGEX FLAGS)
- *			SEARCHTYPE_PHRASE    - phrase
- *			SEARCHTYPE_MULTIWORD - multiword
- *			SEARCHTYPE_ENTRYATTR - entryAttrib (eg. Word//Lemma./G1234/)	 (Lemma with dot means check components (Lemma.[1-9]) also)
- *			SEARCHTYPE_EXTERNAL  - Use External Search Framework (CLucene, Xapian, etc.)
- *			-5  - multilemma window; set 'flags' param to window size (NOT DONE)
- * @param flags bitwise options flags for search.  Each search type supports different options.
- * 			REG_ICASE	- perform case insensitive search.  Supported by most all search types
- * 			SEARCHFLAG_*	- SWORD-specific search flags for various search types.  See SWModule::SEARCHFLAG_ consts
+ * ENT:	istr		- string for which to search
+ * 	searchType	- type of search to perform
+ *				>=0 - regex; (for backward compat, if > 0 then used as additional REGEX FLAGS)
+ *				-1  - phrase
+ *				-2  - multiword
+ *				-3  - entryAttrib (eg. Word//Lemma./G1234/)	 (Lemma with dot means check components (Lemma.[1-9]) also)
+ *				-4  - clucene
+ *				-5  - multilemma window; flags = window size
+ * 	flags		- options flags for search
+ *	justCheckIfSupported	- if set, don't search, only tell if this
+ *							function supports requested search.
  *
- * @param scope Key containing the scope. VerseKey or ListKey are useful here.
- * @param justCheckIfSupported If set, don't search but instead set this variable to true/false if the requested search is supported,
- * @param percent Callback function to get the current search status in %.
- * @param percentUserData Anything that you might want to send to the precent callback function.
- *
- * @return ListKey set to entry keys that match
+ * RET: ListKey set to verses that contain istr
  */
 
 ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *scope, bool *justCheckIfSupported, void (*percent)(char, void *), void *percentUserData) {
@@ -406,7 +393,7 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 	// Searching are done in a sliding window of 2 verses right now.
 	// To turn this off, include SEARCHFLAG_STRICTBOUNDARIES in search flags
 	int windowSize = 2;
-	if ((flags & SEARCHFLAG_STRICTBOUNDARIES) && (searchType == SEARCHTYPE_MULTIWORD || searchType > 0)) {
+	if ((flags & SEARCHFLAG_STRICTBOUNDARIES) && (searchType == -2 || searchType > 0)) {
 		// remove custom SWORD flag to prevent possible overlap with unknown regex option
 		flags ^= SEARCHFLAG_STRICTBOUNDARIES;
 		windowSize = 1;
@@ -422,13 +409,13 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 	target.append("lucene");
 #endif
 	if (justCheckIfSupported) {
-		*justCheckIfSupported = (searchType >= SEARCHTYPE_ENTRYATTR);
+		*justCheckIfSupported = (searchType >= -3);
 #if defined USEXAPIAN
-		if ((searchType == SEARCHTYPE_EXTERNAL) && (FileMgr::existsDir(target))) {
+		if ((searchType == -4) && (FileMgr::existsDir(target))) {
 			*justCheckIfSupported = true;
 		}
 #elif defined USELUCENE
-		if ((searchType == SEARCHTYPE_EXTERNAL) && (IndexReader::indexExists(target.c_str()))) {
+		if ((searchType == -4) && (IndexReader::indexExists(target.c_str()))) {
 			*justCheckIfSupported = true;
 		}
 #endif
@@ -467,7 +454,7 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 			|| (getConfig().has("GlobalOptionFilter", "UTF8ArabicPoints"))
 			|| (strchr(istr, '<')));
 
-	setProcessEntryAttributes(searchType == SEARCHTYPE_ENTRYATTR);
+	setProcessEntryAttributes(searchType == -3);
 	
 
 	if (!key->isPersist()) {
@@ -515,7 +502,7 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 
 #if defined USEXAPIAN || defined USELUCENE
 	(*percent)(10, percentUserData);
-	if (searchType == SEARCHTYPE_EXTERNAL) {	// indexed search
+	if (searchType == -4) {	// indexed search
 #if defined USEXAPIAN
 		SWTRY {
 			Xapian::Database database(target.c_str());
@@ -615,12 +602,14 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 	// some pre-loop processing
 	switch (searchType) {
 
-	case SEARCHTYPE_PHRASE:
+	// phrase
+	case -1:
 		// let's see if we're told to ignore case.  If so, then we'll touppstr our term
 		if ((flags & REG_ICASE) == REG_ICASE) term.toUpper();
 		break;
 
-	case SEARCHTYPE_MULTIWORD:
+	// multi-word
+	case -2:
 	case -5:
 		// let's break the term down into our words vector
 		while (1) {
@@ -639,7 +628,7 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 		break;
 
 	// entry attributes
-	case SEARCHTYPE_ENTRYATTR:
+	case -3:
 		// let's break the attribute segs down.  We'll reuse our words vector for each segment
 		while (1) {
 			const char *word = term.stripPrefix('/');
@@ -662,7 +651,7 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 	(*percent)(perc, percentUserData);
 
 	
-	while ((searchType != SEARCHTYPE_EXTERNAL) && !popError() && !terminateSearch) {
+	while ((searchType != -4) && !popError() && !terminateSearch) {
 		long mindex = key->getIndex();
 		float per = (float)mindex / highIndex;
 		per *= 93;
@@ -733,7 +722,8 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 			SWBuf textBuf;
 			switch (searchType) {
 
-			case SEARCHTYPE_PHRASE: {
+			// phrase
+			case -1: {
 				textBuf = stripText();
 				if ((flags & REG_ICASE) == REG_ICASE) textBuf.toUpper();
 				sres = strstr(textBuf.c_str(), term.c_str());
@@ -745,7 +735,8 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 				break;
 			}
 
-			case SEARCHTYPE_MULTIWORD: { // enclose our allocations
+			// multiword
+			case -2: { // enclose our allocations
 				int stripped = 0;
 				int multiVerse = 0;
 				unsigned int foundWords = 0;
@@ -815,7 +806,8 @@ ListKey &SWModule::search(const char *istr, int searchType, int flags, SWKey *sc
 			}
 			break;
 
-			case SEARCHTYPE_ENTRYATTR: {
+			// entry attributes
+			case -3: {
 				renderText();	// force parse
 				AttributeTypeList &entryAttribs = getEntryAttributes();
 				AttributeTypeList::iterator i1Start, i1End;

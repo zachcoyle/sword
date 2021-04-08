@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  parallelBibles.cpp -	This examples demonstrates a strategy for
+ *  parallelbibles.cpp -	This examples demonstrates a strategy for
  *  				displaying Bibles in parallel
  *
  * $Id: parallelbibles.cpp 3030 2014-02-28 02:14:44Z scribe $

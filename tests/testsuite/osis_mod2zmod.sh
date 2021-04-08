@@ -45,7 +45,7 @@ GlobalOptionFilter=OSISRedLetterWords
 Feature=StrongsNumbers
 !
 
-../../utilities/osis2mod tmp/osis_mod2zmod/modules/ osisReference.xml 2>&1 | grep -v \$Rev | grep -v WARN
+../../utilities/osis2mod tmp/osis_mod2zmod/modules/ osisReference.xml 2>&1 | grep -v \$Rev
 
 sed 's/OSISReference/zOSISReference/' osis_basic.good > osis_mod2zmod.good
 cd tmp/osis_mod2zmod
